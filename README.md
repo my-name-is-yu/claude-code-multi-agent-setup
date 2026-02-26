@@ -10,11 +10,13 @@
 
 This repository provides ready-to-use configuration prompts and source code for setting up Claude Code as a **multi-agent team system**. No framework or external dependencies beyond Claude Code itself -- just prompt engineering and a lightweight visualization layer.
 
+The protocol uses a **2-layer architecture**: a compact core (`CLAUDE.md`, ~1050 tokens) that the Boss reads on every request, plus three on-demand protocol files loaded only when the relevant situation arises. This keeps the always-loaded context small while making detailed rules available when needed.
+
 The setup is split into two parts:
 
 | Part | File | Description |
 |------|------|-------------|
-| 1 | [multi-agent-setup-part1.md](multi-agent-setup-part1.md) | Multi-agent team protocol (CLAUDE.md + settings.json) |
+| 1 | [multi-agent-setup-part1.md](multi-agent-setup-part1.md) | Multi-agent team protocol (CLAUDE.md + protocol files + settings.json) |
 | 2 | [multi-agent-setup-part2.md](multi-agent-setup-part2.md) | macOS menu bar visualization tool (source code + installation) |
 
 ### What it does
@@ -23,6 +25,11 @@ The setup is split into two parts:
 - **7 agent roles** -- advisor, researcher, worker, reviewer, skill-discoverer, composer, writer -- each with a defined purpose and recommended model
 - **Keeps the user channel open** -- subagents run in the background so the Boss always remains responsive to user input
 - **Auto-verification and quality review** -- a reviewer agent is automatically launched after code changes; no manual request needed
+- **Source authority hierarchy** -- a 6-level trust ranking (code > tests > types > git history > docs > web search) prevents decisions based on stale documentation
+- **Parallel agent conflict prevention** -- shared contracts and post-completion contradiction scanning keep parallel workers from producing inconsistent output
+- **Irreversible action protection** -- file deletes, external API writes, force-pushes, and similar operations require explicit user confirmation regardless of task size
+- **Context health management** -- proactive `/clear` triggers and structured memory files keep reasoning quality high across long sessions
+- **Structured project knowledge base** -- per-project files record stack, build commands, architecture, and known issues for agents to read before starting work
 - **Session memory** -- patterns, project notes, and debugging insights persist across sessions via MEMORY.md
 - **macOS menu bar app** shows real-time agent status, token usage, and estimated cost via Server-Sent Events (SSE)
 
@@ -75,13 +82,23 @@ User
   |
   v
 Boss (Opus) -----> Subagents (background)
-  |                  |-- advisor    (task decomposition, strategy)
-  |                  |-- researcher (information gathering)
-  |                  |-- worker     (code, writing, analysis)
-  |                  |-- reviewer   (quality checks)
-  |                  |-- skill-discoverer (pattern detection)
-  |                  |-- composer   (large content assembly)
-  |                  +-- writer     (file writes)
+  |   ^              |-- advisor    (task decomposition, strategy)
+  |   |              |-- researcher (information gathering)
+  |   |              |-- worker     (code, writing, analysis)
+  |   |              |-- reviewer   (quality checks)
+  |   |              |-- skill-discoverer (pattern detection)
+  |   |              |-- composer   (large content assembly)
+  |   |              +-- writer     (file writes)
+  |   |
+  |   | reads on demand
+  |   |
+  |  ~/.claude/
+  |    ├── CLAUDE.md (core, ~1050 tokens)
+  |    ├── protocols/
+  |    │   ├── orchestration.md  (agent dispatch, conflict prevention, error handling)
+  |    │   ├── quality.md        (source authority, verification, review strategy)
+  |    │   └── knowledge.md      (memory updates, project knowledge, skill discovery)
+  |    └── projects/<path>/memory/
   |
   | Claude Code Hooks (on subagent start/stop)
   v
@@ -95,6 +112,8 @@ macOS Menu Bar App (Swift / Cocoa)
   +-- macOS notifications on completion/error
 ```
 
+The core `CLAUDE.md` is always loaded and covers task sizing, agent roster, signals, and common mistakes. The three protocol files are read on demand -- Boss loads `orchestration.md` when dispatching agents, `quality.md` when reviewing or verifying, and `knowledge.md` when updating memory or discovering skills.
+
 The hooks fire automatically when Claude Code spawns or completes a subagent. The server aggregates state and pushes updates to the menu bar app via SSE.
 
 ---
@@ -106,7 +125,10 @@ The hooks fire automatically when Claude Code spawns or completes a subagent. Th
 | Component | Description |
 |-----------|-------------|
 | `settings.json` config | Permissions allow-list/deny-list, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` flag |
-| `CLAUDE.md` protocol | Full operating protocol -- task sizing, agent roster, model selection, researcher pipeline, interrupt handling, error recovery, memory management, efficient delegation |
+| `~/.claude/CLAUDE.md` (core) | Always-loaded protocol: signals, task sizing, agent roster, model selection, context health, common mistakes, and pointers to protocol files (~1050 tokens) |
+| `~/.claude/protocols/orchestration.md` | On-demand: agent dispatch rules, parallel conflict prevention, interrupt handling, error recovery, session continuity, prompt guidelines, delegation patterns |
+| `~/.claude/protocols/quality.md` | On-demand: 6-level source authority hierarchy, confidence labels, verification protocol, review strategy |
+| `~/.claude/protocols/knowledge.md` | On-demand: memory update rules, structured project knowledge base format, skill discovery triggers |
 | `MEMORY.md` template | Initial skeleton for session-persistent memory (patterns, preferences, project notes) |
 
 ### Part 2: `multi-agent-setup-part2.md`
@@ -119,7 +141,7 @@ Setup guide for the [agent-visualization](https://github.com/my-name-is-yu/agent
 
 ### Model selection per agent role
 
-Edit the **Model Selection** table in `~/.claude/CLAUDE.md`:
+Edit the **Agent Roster** table in `~/.claude/CLAUDE.md`:
 
 | Agent role | Default model | Alternatives |
 |-----------|--------------|-------------|
@@ -147,7 +169,18 @@ Set these in `~/.claude/settings.json` under `env`, or in the LaunchAgent plist:
 
 ### Concurrent agent limit
 
-The default is **3-4 simultaneous** background agents. Adjust the "Concurrent Agent Limit" section in `CLAUDE.md` if your rate limits allow more.
+The default is **3-4 simultaneous** background agents. Adjust the "Concurrent Agent Limit" section in `~/.claude/protocols/orchestration.md` if your rate limits allow more.
+
+### Protocol customization
+
+Detailed rules for orchestration, quality assurance, and knowledge management live in the three files under `~/.claude/protocols/`. Edit those files directly to change behavior such as:
+
+- Source authority ranking (`protocols/quality.md`)
+- Parallel conflict prevention rules (`protocols/orchestration.md`)
+- Project knowledge base format (`protocols/knowledge.md`)
+- Irreversible action protection (`protocols/orchestration.md`)
+
+The core `~/.claude/CLAUDE.md` intentionally stays small. Avoid adding bulk to it -- put new detailed rules in the appropriate protocol file instead.
 
 ### Permissions
 
