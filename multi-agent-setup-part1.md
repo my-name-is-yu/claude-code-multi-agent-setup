@@ -1,46 +1,46 @@
-# Claude Code マルチエージェントチーム セットアップガイド (Part 1/2)
+# Claude Code Multi-Agent Team Setup Guide (Part 1/2)
 
-## はじめに
+## Introduction
 
-このガイドでは、Claude Code 上で動作する**マルチエージェントチームシステム**のセットアップ方法を説明します。
+This guide explains how to set up a **multi-agent team system** that runs on Claude Code.
 
-### このシステムとは
+### What is this system?
 
-Claude Code の AI エージェントを「チーム」として機能させるプロンプトエンジニアリング手法です。
+A prompt engineering approach that makes Claude Code's AI agents work as a coordinated "team."
 
-- **Boss (orchestrator)**: ユーザーのリクエストを受け取り、タスクを分解して各サブエージェントに委任する司令塔
-- **サブエージェント**: advisor, researcher, worker, reviewer, skill-discoverer, composer, writer の 7 種類
+- **Boss (orchestrator)**: Receives user requests, decomposes tasks, and delegates to subagents
+- **Subagents**: 7 types -- advisor, researcher, worker, reviewer, skill-discoverer, composer, writer
 
-### メリット
+### Benefits
 
-- **タスクの並行処理**: 複数の worker を同時にバックグラウンドで実行し、大規模タスクを高速に処理
-- **ユーザーチャネルの常時開放**: サブエージェントがバックグラウンドで作業するため、Boss は常にユーザーの入力を受け付け可能
-- **品質保証の自動化**: コード変更時に reviewer が自動的に品質チェックを実施
-- **セッション横断のメモリ**: 発見したパターンやプロジェクト情報を記憶し、次のセッションで活用
-
----
-
-## 前提条件
-
-- **Claude Code (CLI)** がインストール済みであること
-- **Claude Opus 4.6 モデル**が利用可能であること (Max プランまたは API キー)
-- **OS**: macOS, Linux, または WSL (Windows Subsystem for Linux)
+- **Parallel task execution**: Run multiple workers simultaneously in the background to process large tasks faster
+- **Always-open user channel**: Subagents work in the background, so the Boss remains available for user input at all times
+- **Automated quality assurance**: The reviewer automatically performs quality checks on code changes
+- **Cross-session memory**: Discovered patterns and project information are persisted and reused in future sessions
 
 ---
 
-## Step 1: settings.json の設定
+## Prerequisites
 
-Claude Code のグローバル設定ファイルを編集します。
+- **Claude Code (CLI)** is installed
+- **Claude Opus 4.6 model** is available (Max plan or API key)
+- **OS**: macOS, Linux, or WSL (Windows Subsystem for Linux)
 
-### ファイルの場所
+---
+
+## Step 1: Configure settings.json
+
+Edit the Claude Code global settings file.
+
+### File location
 
 ```
 ~/.claude/settings.json
 ```
 
-ファイルが存在しない場合は新規作成してください。既に存在する場合は、既存の内容とマージしてください。
+Create this file if it does not exist. If it already exists, merge the content below with your existing settings.
 
-### 貼り付ける内容
+### Content to add
 
 ```json
 {
@@ -97,35 +97,35 @@ Claude Code のグローバル設定ファイルを編集します。
 }
 ```
 
-### 各項目の説明
+### Field descriptions
 
-| 項目 | 説明 |
-|------|------|
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Agent Teams 実験的機能を有効化する環境変数。サブエージェント間の双方向依存や型定義の同期が必要な大規模タスクで威力を発揮します |
-| `permissions.allow` | サブエージェントが許可確認なしで実行できる操作のリスト。ファイル操作、検索、一般的な開発コマンドを網羅しています。自分の開発環境に合わせて追加・削除してください |
-| `permissions.deny` | 明示的に禁止する破壊的操作のリスト。`rm -rf`、`git push --force`、`git reset --hard`、`git clean` を禁止し、意図しないデータ損失を防ぎます |
+| Field | Description |
+|-------|-------------|
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Environment variable that enables the experimental Agent Teams feature. Useful for large tasks requiring bidirectional dependencies or synchronized type definitions across subagents |
+| `permissions.allow` | List of operations subagents can execute without confirmation prompts. Covers file operations, search, and common development commands. Add or remove entries to match your development environment |
+| `permissions.deny` | List of explicitly prohibited destructive operations. Blocks `rm -rf`, `git push --force`, `git reset --hard`, and `git clean` to prevent unintended data loss |
 
-> **注意**: permissions は推奨デフォルトです。自分の開発スタイルに合わせて調整してください。例えば `Bash(docker *)` や `Bash(terraform *)` など、よく使うコマンドを追加できます。
+> **Note**: These permissions are recommended defaults. Adjust them to fit your development workflow. For example, you can add `Bash(docker *)` or `Bash(terraform *)` for tools you use frequently.
 
 ---
 
-## Step 2: CLAUDE.md の設定
+## Step 2: Create CLAUDE.md
 
-マルチエージェントチームの動作プロトコルを定義するファイルを作成します。
+Create the file that defines the operating protocol for the multi-agent team.
 
-### ファイルの場所
+### File location
 
 ```
 ~/.claude/CLAUDE.md
 ```
 
-このファイルは Claude Code 起動時に自動的に読み込まれ、すべてのプロジェクトに適用されるグローバルな指示書です。
+This file is automatically loaded when Claude Code starts and serves as a global instruction set applied to all projects.
 
-### 貼り付ける内容
+### Content to add
 
-以下の内容をそのままコピーして `~/.claude/CLAUDE.md` に貼り付けてください。
+Copy the following content and paste it into `~/.claude/CLAUDE.md`.
 
-> **注意**: Part 2 のエージェント可視化ツールを導入する場合は、Boss Activity Signal セクションが追加されます。
+> **Note**: If you install the agent visualization tool from Part 2, a Boss Activity Signal section will be added to this file.
 
 ````
 # Multi-Agent Team Operating Protocol
@@ -400,40 +400,40 @@ This keeps Boss available for user input at all times.
 Respond in the same language the user uses.
 ````
 
-### CLAUDE.md の主要セクション解説
+### Key sections in CLAUDE.md
 
-| セクション | 役割 |
-|-----------|------|
-| Core Rule | Boss はユーザーチャネルを常に開放し、重い作業はバックグラウンドのサブエージェントに委任 |
-| Task Sizing | タスクの規模に応じた処理戦略 (直接対応 / 単一 worker / 複数 worker / Agent Teams) |
-| Agent Roster | 各サブエージェントの役割と使用タイミング |
-| Model Selection | エージェントごとの推奨モデル (コスト/品質のバランス) |
-| Researcher Usage | 情報収集の 3 モード (事前/オンデマンド/事後) |
-| Autonomous Completion | Plan → Execute → Verify → Report の自律実行ループ |
-| Error Handling | 失敗時のリトライ/エスカレーション戦略 |
-| Memory Updates | セッション横断で蓄積されるナレッジベース |
-| Efficient Delegation | Composer → Writer パイプラインによる大規模ファイル変更の効率化 |
+| Section | Purpose |
+|---------|---------|
+| Core Rule | Boss keeps the user channel open at all times; heavy work is delegated to background subagents |
+| Task Sizing | Processing strategy based on task size (direct handling / single worker / multiple workers / Agent Teams) |
+| Agent Roster | Roles and usage timing for each subagent |
+| Model Selection | Recommended model per agent role (cost/quality balance) |
+| Researcher Usage | Three modes of information gathering (pre / on-demand / post) |
+| Autonomous Completion | Autonomous execution loop: Plan, Execute, Verify, Report |
+| Error Handling | Retry and escalation strategy on failure |
+| Memory Updates | Cross-session knowledge base that accumulates over time |
+| Efficient Delegation | Composer-to-Writer pipeline for efficient large file changes |
 
 ---
 
-## Step 3: MEMORY.md の初期設定
+## Step 3: Initialize MEMORY.md
 
-プロジェクトごとのメモリファイルを作成します。これはセッション横断で情報を蓄積するナレッジベースです。
+Create a per-project memory file. This is a knowledge base that accumulates information across sessions.
 
-### ファイルの場所
+### File location
 
 ```
-~/.claude/projects/<プロジェクトのパス>/memory/MEMORY.md
+~/.claude/projects/<project-path>/memory/MEMORY.md
 ```
 
-`<プロジェクトのパス>` はプロジェクトのディレクトリの絶対パスをハイフン区切りに変換したものです。例えば `/Users/tanaka/projects/my-app` の場合は `-Users-tanaka-projects-my-app` になります。
+`<project-path>` is the absolute path of your project directory converted to a hyphen-delimited string. For example, `/Users/yourname/projects/my-app` becomes `-Users-yourname-projects-my-app`.
 
 ```bash
-# 例: プロジェクトディレクトリが /Users/tanaka/projects/my-app の場合
-mkdir -p ~/.claude/projects/-Users-tanaka-projects-my-app/memory
+# Example: if your project directory is /Users/yourname/projects/my-app
+mkdir -p ~/.claude/projects/-Users-yourname-projects-my-app/memory
 ```
 
-### 貼り付ける内容
+### Content to add
 
 ```markdown
 # Auto Memory
@@ -452,60 +452,60 @@ mkdir -p ~/.claude/projects/-Users-tanaka-projects-my-app/memory
 (Updated as projects are worked on)
 ```
 
-> **注意**: このファイルは Claude Code が自動的に更新します。初期設定として上記の骨格を用意しておけば、使い続けるうちにプロジェクト固有の知識が蓄積されていきます。
+> **Note**: Claude Code updates this file automatically. Provide the skeleton above as an initial setup, and project-specific knowledge will accumulate as you continue using the system.
 
 ---
 
-## 使い方のヒント
+## Usage Tips
 
-### 最初の一歩
+### Getting started
 
-中規模のタスク (例: 「この関数をリファクタリングして」「テストを追加して」) から試してみてください。Boss がタスクを分解してサブエージェントに委任する様子が確認できます。
+Start with a medium-sized task (e.g., "refactor this function" or "add tests for this module"). You will see the Boss decompose the task and delegate to subagents.
 
-### 動作の仕組み
+### How it works
 
-1. ユーザーがリクエストを送信すると、Boss がタスクの規模を判断します
-2. 中規模以上のタスクでは、まず researcher が情報を収集し、advisor がプランを策定します
-3. プランに基づいて worker がバックグラウンドで作業を実行します
-4. コード変更の場合、reviewer が自動的に品質チェックを行います
-5. 完了後、結果のサマリーが報告されます
+1. When a user sends a request, the Boss evaluates the task size
+2. For medium or larger tasks, the researcher gathers information first, then the advisor creates a plan
+3. Workers execute the plan in the background
+4. For code changes, the reviewer automatically performs a quality check
+5. Once complete, a summary of results is reported
 
-### ポイント
+### Key points
 
-- **バックグラウンド実行**: サブエージェントはバックグラウンドで動作するため、作業中もチャットで別の質問や指示が可能です
-- **中断と再計画**: 作業中に要件が変わった場合、Boss は advisor に再相談して計画を修正します
-- **メモリの蓄積**: セッションを重ねるごとに MEMORY.md にプロジェクトの知識が蓄積され、より効率的に動作するようになります
-- **Reviewer の自動化**: コード変更時は明示的に依頼しなくても reviewer が自動で品質チェックを行います
-
----
-
-## カスタマイズポイント
-
-### モデル選択の調整
-
-CLAUDE.md 内の Model Selection テーブルを調整できます。
-
-- **コスト重視**: より多くのエージェントに `haiku` を割り当て (例: reviewer も haiku に)
-- **品質重視**: worker (complex) を `opus` に固定
-
-### 同時実行エージェント数
-
-デフォルトは **3-4 同時実行** です。レート制限に余裕がある場合は増やせますが、API の利用状況に応じて調整してください。
-
-### 言語設定
-
-`Respond in the same language the user uses` がデフォルトで設定されているため、日本語で話しかければ日本語で応答します。変更は不要です。
-
-### permissions の調整
-
-`settings.json` の permissions リストは開発環境に合わせてカスタマイズしてください。
-
-- Docker を使う場合: `"Bash(docker *)"` を追加
-- Terraform を使う場合: `"Bash(terraform *)"` を追加
-- deny リストに独自の危険なコマンドを追加することも可能です
+- **Background execution**: Subagents run in the background, so you can send other questions or instructions via chat while work is in progress
+- **Interruption and re-planning**: If requirements change mid-task, the Boss re-consults the advisor and adjusts the plan
+- **Memory accumulation**: Project knowledge accumulates in MEMORY.md over sessions, making the system more efficient over time
+- **Automated review**: The reviewer automatically performs quality checks on code changes without an explicit request
 
 ---
 
-## 次のステップ
+## Customization
 
-**Part 2: エージェント可視化ツールのセットアップ** では、メニューバーにエージェントの動作状況をリアルタイム表示する可視化ツールの導入方法を説明します。これにより Boss Activity Signal が有効化され、エージェントチームの動作をビジュアルに確認できるようになります。
+### Model selection
+
+You can adjust the Model Selection table in CLAUDE.md.
+
+- **Cost-focused**: Assign `haiku` to more agents (e.g., use haiku for reviewer as well)
+- **Quality-focused**: Lock worker (complex) to `opus`
+
+### Concurrent agent limit
+
+The default is **3-4 simultaneous agents**. You can increase this if your rate limits allow, but adjust based on your API usage.
+
+### Language setting
+
+The default setting `Respond in the same language the user uses` means the system responds in whatever language you write in. No changes are needed.
+
+### Permissions
+
+Customize the permissions list in `settings.json` to match your development environment.
+
+- If you use Docker: add `"Bash(docker *)"`
+- If you use Terraform: add `"Bash(terraform *)"`
+- You can also add custom dangerous commands to the deny list
+
+---
+
+## Next Step
+
+**Part 2: Agent Visualization Tool Setup** covers how to install a visualization tool that displays agent activity in real time on your menu bar. This enables the Boss Activity Signal and lets you visually monitor the agent team in action.

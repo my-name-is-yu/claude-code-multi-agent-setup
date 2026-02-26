@@ -1,30 +1,30 @@
-# Part 2: macOS メニューバー可視化ツールのセットアップ
+# Part 2: Setting Up the macOS Menu Bar Visualization Tool
 
-> **マルチエージェントチーム可視化ツール** -- Claude Code のマルチエージェント動作をmacOSメニューバーでリアルタイムに監視するツールです。
-
----
-
-## この可視化ツールでできること
-
-- **macOSメニューバーでエージェントの状態をリアルタイム表示** -- メニューバーに常駐アイコンが表示され、Boss/エージェントの現在のステータス (running / done / idle) が一目でわかります
-- **エージェントの詳細表示** -- 各エージェントをクリックすると、プロンプト、出力プレビュー、実行時間、トークン数などの詳細情報を確認できます
-- **セッション使用量の追跡** -- トークン数と推定コスト（USD）をリアルタイムで集計します
-- **macOS通知** -- エージェントが完了またはエラーになった際に、macOSの通知センターで通知を受け取れます
-- **自動リセット** -- 全エージェント完了後60秒で自動的に状態がクリアされます（次のタスクに備える）
-
-## 前提条件
-
-- **macOS 13 (Ventura) 以降**
-- **Node.js** がインストール済みであること（`node -v` で確認）
-- **Xcode Command Line Tools** がインストール済みであること
-  - 未インストールの場合: `xcode-select --install`
-- **Part 1 (マルチエージェントチームのセットアップ) が完了済みであること**
+> **Multi-Agent Team Visualization Tool** -- A tool for monitoring Claude Code's multi-agent operations in real time from the macOS menu bar.
 
 ---
 
-## Step 1: プロジェクトディレクトリの作成
+## What This Visualization Tool Can Do
 
-ターミナルで以下を実行して、プロジェクトのディレクトリ構造を作成します。
+- **Real-time agent status in the macOS menu bar** -- A persistent icon appears in the menu bar, giving you an at-a-glance view of the current status (running / done / idle) for the Boss and all agents.
+- **Agent detail view** -- Click on any agent to see detailed information including its prompt, output preview, execution time, and token count.
+- **Session usage tracking** -- Token counts and estimated cost (USD) are aggregated in real time.
+- **macOS notifications** -- Receive native macOS Notification Center alerts when an agent completes or encounters an error.
+- **Auto-reset** -- State is automatically cleared 60 seconds after all agents finish, preparing for the next task.
+
+## Prerequisites
+
+- **macOS 13 (Ventura) or later**
+- **Node.js** must be installed (verify with `node -v`)
+- **Xcode Command Line Tools** must be installed
+  - If not installed: `xcode-select --install`
+- **Part 1 (Multi-Agent Team Setup) must be completed**
+
+---
+
+## Step 1: Create the Project Directory
+
+Run the following in Terminal to create the project directory structure.
 
 ```bash
 mkdir -p ~/agent-visualization/menubar/AgentMenuBar.app/Contents/MacOS
@@ -33,13 +33,13 @@ cd ~/agent-visualization
 
 ---
 
-## Step 2: ファイルの作成
+## Step 2: Create the Files
 
-以下の各ファイルを作成します。コードブロックの内容をそのままコピーして、指定されたパスにファイルを作成してください。
+Create each of the following files. Copy the contents of each code block exactly and save them at the specified paths.
 
 ### 2.1 package.json
 
-**パス:** `~/agent-visualization/package.json`
+**Path:** `~/agent-visualization/package.json`
 
 ```json
 {
@@ -55,9 +55,9 @@ cd ~/agent-visualization
 
 ### 2.2 server.js
 
-**パス:** `~/agent-visualization/server.js`
+**Path:** `~/agent-visualization/server.js`
 
-可視化サーバーの本体です。エージェントの状態を管理し、メニューバーアプリにデータを提供します。
+The main visualization server. It manages agent state and provides data to the menu bar app.
 
 ```javascript
 const fs = require('fs');
@@ -691,9 +691,9 @@ process.on('SIGINT', () => { saveState(); process.exit(0); });
 
 ### 2.3 hook.js
 
-**パス:** `~/agent-visualization/hook.js`
+**Path:** `~/agent-visualization/hook.js`
 
-Claude Code の hooks から呼び出されるスクリプトです。Claude Code が Tool を使うたびに stdin からイベントデータを受け取り、サーバーに転送します。
+A script invoked by Claude Code hooks. Each time Claude Code uses a tool, it receives event data from stdin and forwards it to the server.
 
 ```javascript
 #!/usr/bin/env node
@@ -763,9 +763,9 @@ process.stdin.on("error", () => {
 
 ### 2.4 AgentMenuBar.swift
 
-**パス:** `~/agent-visualization/menubar/AgentMenuBar.swift`
+**Path:** `~/agent-visualization/menubar/AgentMenuBar.swift`
 
-macOS メニューバーに常駐するネイティブアプリのソースコードです。
+Source code for the native macOS menu bar app.
 
 ```swift
 import Cocoa
@@ -1866,7 +1866,7 @@ app.run()
 
 ### 2.5 Info.plist
 
-**パス:** `~/agent-visualization/menubar/AgentMenuBar.app/Contents/Info.plist`
+**Path:** `~/agent-visualization/menubar/AgentMenuBar.app/Contents/Info.plist`
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1898,9 +1898,9 @@ app.run()
 
 ### 2.6 install.sh
 
-**パス:** `~/agent-visualization/install.sh`
+**Path:** `~/agent-visualization/install.sh`
 
-インストールスクリプトです。npm install、Swiftコンパイル、LaunchAgent登録を自動で行います。
+The install script. It automatically handles npm install, Swift compilation, and LaunchAgent registration.
 
 ```bash
 #!/bin/bash
@@ -2058,9 +2058,9 @@ echo "    launchctl unload $LAUNCH_DIR/com.agent-visualization.menubar.plist"
 
 ---
 
-## Step 3: インストール実行
+## Step 3: Run the Installer
 
-すべてのファイルを作成したら、以下を実行します。
+Once all files are created, run the following.
 
 ```bash
 cd ~/agent-visualization
@@ -2068,29 +2068,29 @@ chmod +x install.sh hook.js
 ./install.sh
 ```
 
-インストールスクリプトが以下を自動的に行います:
-1. npm依存パッケージのインストール（express）
-2. Swiftソースのコンパイル（メニューバーアプリ）
-3. コード署名
-4. LaunchAgent plistの生成
-5. サーバーとメニューバーアプリの起動
-6. 動作確認
+The install script automatically performs the following:
+1. Installs npm dependencies (express)
+2. Compiles the Swift source (menu bar app)
+3. Code-signs the binary
+4. Generates LaunchAgent plist files
+5. Starts the server and menu bar app
+6. Verifies the installation
 
-すべて `OK` と表示されれば成功です。
+If everything shows `OK`, the installation was successful.
 
 ---
 
-## Step 4: Claude Code hooks の設定
+## Step 4: Configure Claude Code Hooks
 
-Claude Code の hooks を設定して、ツール使用時に可視化サーバーにイベントを送信するようにします。
+Set up Claude Code hooks so that tool usage events are sent to the visualization server.
 
-`~/.claude/settings.json` を編集して、`hooks` セクションを追加します。
+Edit `~/.claude/settings.json` and add the `hooks` section.
 
-> **重要:** `YOUR_HOME_DIR` の部分を自分のホームディレクトリの絶対パスに置き換えてください（例: `/Users/tanaka`）。ホームディレクトリのパスは `echo $HOME` で確認できます。
+> **Important:** Replace `YOUR_HOME_DIR` with the absolute path to your home directory (e.g., `/Users/tanaka`). You can find your home directory path by running `echo $HOME`.
 
-Part 1 で設定済みの `env` や `permissions` はそのまま残し、`hooks` セクションを追加してください。
+Keep the `env` and `permissions` sections you configured in Part 1 as they are, and add only the `hooks` section.
 
-> **重要:** 以下の例では `env` と `permissions` は Part 1 で設定した内容をそのまま使ってください。追加するのは `hooks` セクションのみです。
+> **Important:** In the example below, the `env` and `permissions` entries should remain exactly as you configured them in Part 1. The only addition is the `hooks` section.
 
 ```json
 {
@@ -2171,11 +2171,11 @@ Part 1 で設定済みの `env` や `permissions` はそのまま残し、`hooks
 
 ---
 
-## Step 5: CLAUDE.md に Boss Activity Signal を追加
+## Step 5: Add the Boss Activity Signal to CLAUDE.md
 
-`~/.claude/CLAUDE.md` に以下のセクションを追加してください。これにより、Boss（メインのClaude）がユーザーのリクエストを処理し始めたとき、メニューバーのステータスが "running" に切り替わるようになります。
+Add the following section to `~/.claude/CLAUDE.md`. This ensures that when the Boss (the main Claude) starts processing a user request, the menu bar status switches to "running".
 
-ファイルの先頭（最初の見出しの後）に以下を追加します:
+Add the following near the top of the file (after the first heading):
 
 ~~~~markdown
 ## Boss Activity Signal
@@ -2189,42 +2189,42 @@ Run this ONCE at the beginning of each user request (not on every tool call). Th
 
 ---
 
-## 動作確認
+## Verification
 
-以下の3点を確認してください。
+Verify the following three items.
 
-### 1. メニューバーにアイコンが表示されていること
+### 1. The icon appears in the menu bar
 
-macOSのメニューバー（画面上部）にロボット絵文字（🤖）が表示されているはずです。クリックするとドロップダウンメニューが開きます。
+You should see a robot icon in the macOS menu bar (at the top of the screen). Clicking it opens a dropdown menu.
 
-### 2. サーバーが応答すること
+### 2. The server responds
 
-ターミナルで以下を実行して、JSONが返ってくることを確認します:
+Run the following in Terminal and verify that JSON is returned:
 
 ```bash
 curl http://localhost:1217/state
 ```
 
-以下のようなJSONが返ってくれば成功です:
+If you see JSON like the following, the server is working correctly:
 
 ```json
 {"type":"state","summary":{"total":0,"running":0,"completed":0,"errored":0},"boss":{"status":"idle","model":"opus"},...}
 ```
 
-### 3. Claude Code との連携
+### 3. Integration with Claude Code
 
-Claude Code でマルチエージェントタスクを実行して、メニューバーのステータスが以下のように変化することを確認します:
+Run a multi-agent task in Claude Code and verify that the menu bar status changes as follows:
 
-- タスク開始時: `idle` -> `running`
-- エージェント実行中: エージェント一覧がドロップダウンに表示される
-- タスク完了時: `running` -> `done`
-- 60秒後: `done` -> `idle`（自動リセット）
+- When the task starts: `idle` -> `running`
+- While agents are running: the agent list appears in the dropdown
+- When the task finishes: `running` -> `done`
+- After 60 seconds: `done` -> `idle` (auto-reset)
 
 ---
 
-## トラブルシューティング
+## Troubleshooting
 
-### サーバーが接続されない（"Server not connected" と表示される）
+### Server not connected (shows "Server not connected")
 
 ```bash
 # サーバーを手動で起動

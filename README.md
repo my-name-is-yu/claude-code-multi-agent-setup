@@ -191,6 +191,3 @@ MIT
 - macOS menu bar app written in Swift using the Cocoa framework
 - Visualization server powered by [Express](https://expressjs.com/) (Node.js)
 
----
-
-> **Japanese / 日本語補足:** セットアップガイド本体 (Part 1, Part 2) は日本語で書かれています。この README は GitHub の国際的な読者向けに英語で記載していますが、各ガイドファイルの手順に従えばそのまま導入できます。
