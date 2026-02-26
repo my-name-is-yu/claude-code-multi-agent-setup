@@ -39,8 +39,6 @@ The setup is split into two parts:
 - **Xcode Command Line Tools** -- install with `xcode-select --install` if not present
 
 > *Part 1 (the protocol itself) does not require macOS. It works anywhere Claude Code runs.*
->
-> *Part 1 のプロトコル自体は macOS 以外 (Linux, WSL) でも動作します。Part 2 のメニューバーアプリのみ macOS が必要です。*
 
 ---
 
@@ -113,14 +111,7 @@ The hooks fire automatically when Claude Code spawns or completes a subagent. Th
 
 ### Part 2: `multi-agent-setup-part2.md`
 
-| Component | Description |
-|-----------|-------------|
-| `package.json` | Node.js project manifest for the visualization server |
-| `server.js` | Express-based server that manages agent state, tracks token usage / cost, and serves SSE to the menu bar app |
-| `hook.js` | Claude Code hook script that reports subagent lifecycle events to the server |
-| `AgentMenuBar.swift` | Native macOS menu bar app (~1800 lines) -- displays agent status, token counts, cost, and sends macOS notifications |
-| `Info.plist` | App bundle metadata for the menu bar app |
-| `install.sh` | Automated installer -- compiles Swift, installs npm dependencies, configures LaunchAgents, sets up hooks |
+Setup guide for the [agent-visualization](https://github.com/my-name-is-yu/agent-visualization) tool. Covers cloning, installation, hooks configuration, and CLAUDE.md signal setup. The tool source code lives in its own repository.
 
 ---
 
