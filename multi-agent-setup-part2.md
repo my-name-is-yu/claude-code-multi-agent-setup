@@ -397,7 +397,7 @@ app.post('/event', (req, res) => {
       record.error = errored && typeof tool_output === 'string'
         ? tool_output.slice(0, 300) : null;
       record.output_preview = typeof tool_output === 'string'
-        ? tool_output.slice(0, 800) : null;
+        ? tool_output.slice(0, 2000) : null;
       const usage = parseUsage(tool_output);
       if (usage) {
         record.usage = usage;
@@ -539,7 +539,7 @@ app.post('/event', (req, res) => {
         ? tool_output.slice(0, 300)
         : null;
       record.output_preview = typeof tool_output === 'string'
-        ? tool_output.slice(0, 800)
+        ? tool_output.slice(0, 2000)
         : null;
 
       // Extract output_file path from tool_output
@@ -844,6 +844,66 @@ class ClickableRow: NSView {
     }
 }
 
+class CopyButtonView: NSView {
+    let contentToCopy: String
+    var label: NSTextField!
+    var originalTitle: String
+
+    init(title: String, content: String, menuWidth: CGFloat) {
+        self.contentToCopy = content
+        self.originalTitle = title
+        super.init(frame: NSRect(x: 0, y: 0, width: menuWidth, height: 28))
+
+        let icon = NSTextField(labelWithAttributedString: NSAttributedString(
+            string: "\u{2398}",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: NSColor.systemBlue
+            ]
+        ))
+        icon.sizeToFit()
+        icon.frame.origin = CGPoint(x: kPadding, y: (28 - icon.frame.height) / 2)
+        addSubview(icon)
+
+        label = NSTextField(labelWithAttributedString: NSAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.systemBlue
+            ]
+        ))
+        label.sizeToFit()
+        label.frame.origin = CGPoint(x: kPadding + 20, y: (28 - label.frame.height) / 2)
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func mouseUp(with event: NSEvent) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(contentToCopy, forType: .string)
+        label.attributedStringValue = NSAttributedString(
+            string: "Copied!",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.systemGreen
+            ]
+        )
+        label.sizeToFit()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self else { return }
+            self.label.attributedStringValue = NSAttributedString(
+                string: self.originalTitle,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                    .foregroundColor: NSColor.systemBlue
+                ]
+            )
+            self.label.sizeToFit()
+        }
+    }
+}
+
 // MARK: - SSE Delegate
 
 class SSEDelegate: NSObject, URLSessionDataDelegate {
@@ -885,6 +945,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var currentPollInterval: TimeInterval = 30.0
     var selectedAgent: AgentInfo?
     var menuIsOpen = false
+    var iconImage: NSImage?
     var sseTask: URLSessionDataTask?
     var sseSession: URLSession?
     var sseReconnectTimer: Timer?
@@ -906,8 +967,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.autosaveName = "AgentMenuBarStatusItem"
         statusItem.behavior = []
 
+        // Load icon images: try bundle Resources first, then relative to binary
+        let execPath = (ProcessInfo.processInfo.arguments[0] as NSString).standardizingPath
+        let execDir = (execPath as NSString).deletingLastPathComponent
+        let candidates = [
+            Bundle.main.path(forResource: "Icon", ofType: "png"),
+            ((execDir as NSString).appendingPathComponent("../Icon.png") as NSString).standardizingPath,
+        ]
+        let iconPath = candidates.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0) })
+        NSLog("[AgentMenuBar] Icon path: %@, exists: %d", iconPath ?? "nil", iconPath != nil ? 1 : 0)
+        if let path = iconPath, let img = NSImage(contentsOfFile: path) {
+            img.size = NSSize(width: 18, height: 18)
+            img.isTemplate = false
+            iconImage = img
+        }
+
         if let button = statusItem.button {
-            button.title = "\u{1F916}"
+            if let img = iconImage {
+                button.image = img
+                button.imagePosition = .imageLeading
+            } else {
+                button.title = "🤖"
+            }
             button.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         }
 
@@ -1190,6 +1271,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func updateMenuBarTitle() {
         guard let button = statusItem.button else { return }
 
+        button.image = iconImage
+
         if !connected {
             button.title = " idle"
             return
@@ -1346,20 +1429,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let promptItem = NSMenuItem()
             promptItem.view = makeDetailSection(title: "PROMPT", content: prompt)
             menu.addItem(promptItem)
+            let copyPromptItem = NSMenuItem()
+            copyPromptItem.view = CopyButtonView(title: "Copy Prompt", content: prompt, menuWidth: kMenuWidth)
+            menu.addItem(copyPromptItem)
             menu.addItem(NSMenuItem.separator())
         }
 
         // -- Output Section --
         if let output = agent.outputPreview, !output.isEmpty {
-            let displayOutput: String
-            if output.count > 800 {
-                displayOutput = String(output.prefix(800)) + "..."
-            } else {
-                displayOutput = output
-            }
             let outputItem = NSMenuItem()
-            outputItem.view = makeDetailSection(title: "OUTPUT", content: displayOutput)
+            outputItem.view = makeDetailSection(title: "OUTPUT", content: output)
             menu.addItem(outputItem)
+            let copyOutputItem = NSMenuItem()
+            copyOutputItem.view = CopyButtonView(title: "Copy Output", content: output, menuWidth: kMenuWidth)
+            menu.addItem(copyOutputItem)
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        // -- Usage Section --
+        if agent.totalTokens != nil || agent.toolUses != nil || agent.durationMs != nil {
+            let usageItem = NSMenuItem()
+            usageItem.view = makeUsageSection(agent)
+            menu.addItem(usageItem)
             menu.addItem(NSMenuItem.separator())
         }
 
